@@ -20,9 +20,7 @@ export default async function Home({ searchParams }: Props) {
   const lat = params.lat ? parseFloat(params.lat) : DEFAULT.lat;
   const lon = params.lon ? parseFloat(params.lon) : DEFAULT.lon;
   const cityName = params.city ?? DEFAULT.name;
-
-  const current = await getCurrentWeather(lat, lon);
-  const { icon, label } = getWeatherDescription(current.weathercode);
+  const key = `${lat}-${lon}`;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-100 dark:from-zinc-900 dark:to-zinc-800 p-8">
@@ -37,25 +35,35 @@ export default async function Home({ searchParams }: Props) {
 
         <FavoritesList />
 
-        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow p-6 flex items-center gap-6">
-          <span className="text-6xl">{icon}</span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-xl font-medium text-gray-500 dark:text-zinc-400">{cityName}</p>
-              <FavoriteButton city={{ name: cityName, lat, lon }} />
-            </div>
-            <p className="text-5xl font-bold text-sky-800 dark:text-sky-300">{Math.round(current.temperature)}°C</p>
-            <p className="text-lg text-gray-500 dark:text-zinc-400">{label}</p>
-            <p className="text-sm text-gray-400 dark:text-zinc-500">Vítr: {current.windspeed} km/h</p>
-          </div>
-        </div>
+        <Suspense key={key} fallback={<WeatherCardSkeleton />}>
+          <WeatherSection lat={lat} lon={lon} cityName={cityName} />
+        </Suspense>
 
-        {/* Donačte se samostatně */}
-        <Suspense fallback={<ForecastSkeleton />}>
+        <Suspense key={`forecast-${key}`} fallback={<ForecastSkeleton />}>
           <ForecastSection lat={lat} lon={lon} cityName={cityName} />
         </Suspense>
       </div>
     </main>
+  );
+}
+
+async function WeatherSection({ lat, lon, cityName }: { lat: number; lon: number; cityName: string }) {
+  const current = await getCurrentWeather(lat, lon);
+  const { icon, label } = getWeatherDescription(current.weathercode);
+
+  return (
+    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow p-6 flex items-center gap-6">
+      <span className="text-6xl">{icon}</span>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-xl font-medium text-gray-500 dark:text-zinc-400">{cityName}</p>
+          <FavoriteButton city={{ name: cityName, lat, lon }} />
+        </div>
+        <p className="text-5xl font-bold text-sky-800 dark:text-sky-300">{Math.round(current.temperature)}°C</p>
+        <p className="text-lg text-gray-500 dark:text-zinc-400">{label}</p>
+        <p className="text-sm text-gray-400 dark:text-zinc-500">Vítr: {current.windspeed} km/h</p>
+      </div>
+    </div>
   );
 }
 
@@ -95,6 +103,20 @@ async function ForecastSection({ lat, lon, cityName }: { lat: number; lon: numbe
         </div>
       </div>
     </>
+  );
+}
+
+function WeatherCardSkeleton() {
+  return (
+    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow p-6 flex items-center gap-6">
+      <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse" />
+      <div className="space-y-2 flex-1">
+        <div className="h-5 w-24 rounded bg-gray-200 dark:bg-zinc-700 animate-pulse" />
+        <div className="h-12 w-32 rounded bg-gray-200 dark:bg-zinc-700 animate-pulse" />
+        <div className="h-4 w-20 rounded bg-gray-100 dark:bg-zinc-700 animate-pulse" />
+        <div className="h-4 w-28 rounded bg-gray-100 dark:bg-zinc-700 animate-pulse" />
+      </div>
+    </div>
   );
 }
 
